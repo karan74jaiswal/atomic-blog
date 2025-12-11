@@ -3,6 +3,7 @@ import { faker } from "@faker-js/faker";
 
 function createRandomPost() {
   return {
+    id: faker.datatype.uuid(),
     title: `${faker.hacker.adjective()} ${faker.hacker.noun()}`,
     body: faker.hacker.phrase(),
   };
@@ -10,6 +11,7 @@ function createRandomPost() {
 
 const PostContext = createContext();
 const SearchContext = createContext();
+
 function App() {
   const [posts, setPosts] = useState(() =>
     Array.from({ length: 30 }, () => createRandomPost())
@@ -158,8 +160,8 @@ function List() {
   const { posts } = useContext(PostContext);
   return (
     <ul>
-      {posts.map((post, i) => (
-        <li key={i}>
+      {posts.map((post) => (
+        <li key={post.id}>
           <h3>{post.title}</h3>
           <p>{post.body}</p>
         </li>
@@ -170,13 +172,15 @@ function List() {
 
 function Archive() {
   const { onAddPost } = useContext(PostContext);
-  // Here we don't need the setter function. We're only using state to store these posts because the callback function passed into useState (which generates the posts) is only called once, on the initial render. So we use this trick as an optimization technique, because if we just used a regular variable, these posts would be re-created on every render. We could also move the posts outside the components, but I wanted to show you this trick 😉
-  const [posts] = useState(() =>
-    // 💥 WARNING: This might make your computer slow! Try a smaller `length` first
+  const [posts, setPosts] = useState(() =>
     Array.from({ length: 10000 }, () => createRandomPost())
   );
-
   const [showArchive, setShowArchive] = useState(false);
+  const [visiblePosts, setVisiblePosts] = useState(10);
+
+  const handleLoadMore = () => {
+    setVisiblePosts((prevVisiblePosts) => prevVisiblePosts + 10);
+  };
 
   return (
     <aside>
@@ -186,16 +190,21 @@ function Archive() {
       </button>
 
       {showArchive && (
-        <ul>
-          {posts.map((post, i) => (
-            <li key={i}>
-              <p>
-                <strong>{post.title}:</strong> {post.body}
-              </p>
-              <button onClick={() => onAddPost(post)}>Add as new post</button>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <ul>
+            {posts.slice(0, visiblePosts).map((post) => (
+              <li key={post.id}>
+                <p>
+                  <strong>{post.title}:</strong> {post.body}
+                </p>
+                <button onClick={() => onAddPost(post)}>Add as new post</button>
+              </li>
+            ))}
+          </ul>
+          {visiblePosts < posts.length && (
+            <button onClick={handleLoadMore}>Load More</button>
+          )}
+        </div>
       )}
     </aside>
   );
